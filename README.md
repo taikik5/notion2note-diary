@@ -158,20 +158,71 @@ python3 src/main.py
 ./venv/bin/python -m playwright install-deps chromium
 ```
 
+**note.com のセッションが切れた場合：**
+
+GitHub Actions で以下のエラーが出た場合、セッションの再生成が必要です：
+- `Session expired or invalid. Redirected to login page.`
+- `RuntimeError: Session expired`
+
+**対処方法：**
+
+1. ローカルでログインスクリプトを再実行：
+```bash
+node login-note.js
+```
+
+2. ブラウザで note.com にログイン
+
+3. `note-state.json` が再生成される
+
+4. GitHub Secrets の `NOTE_STATE_FILE` を更新：
+```bash
+# macOS
+cat note-state.json | base64 | pbcopy
+
+# Linux
+cat note-state.json | base64 -w 0
+
+# 出力をコピーして GitHub Secrets に貼り付け
+```
+
+5. GitHub リポジトリの Settings > Secrets and variables > Actions で `NOTE_STATE_FILE` を更新
+
+**セッションの有効期限について：**
+- note.com のセッションは一定期間で期限切れになります
+- 定期的（1〜2週間に1回程度）にセッションを再生成することを推奨します
+- GitHub Actions が失敗した場合は、まずセッション切れを疑ってください
+
 ## 記事フォーマット
 
-生成される記事は以下の形式になります：
+生成される記事は以下の形式になります（note.com用のプレーンテキスト形式）：
 
-```markdown
-# 【Log】YYYY.MM.DD
+```
+【Log】YYYY.MM.DD
 
-## 📝 今日のハイライト
-## 💻 Technical & Work
-## ✍️ Study & Skills
-## 🧠 Career & Mindset
-## 🏥 Life & Health
-## 🚀 Next Action
+📝 今日のハイライト
+• 重要なポイント1
+• 重要なポイント2
 
----
-### あとがき
+💻 Technical & Work
+【プロジェクト名】
+• 進捗内容
+
+✍️ Study & Skills
+• 学習内容
+
+🧠 Career & Mindset
+• キャリアに関する考え
+
+🏥 Life & Health
+• 健康・生活に関する内容
+
+🚀 Next Action
+• タスク1
+• タスク2
+
+───
+
+あとがき
+本日の感想や一言
 ```
