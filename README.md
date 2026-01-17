@@ -35,10 +35,17 @@ node login-note.js
 
 リポジトリの Settings > Secrets and variables > Actions で以下を設定：
 
+**必須：**
 - `OPENAI_API_KEY`: OpenAI APIキー
 - `NOTION_TOKEN`: Notionインテグレーショントークン
 - `NOTION_DATABASE_ID`: NotionデータベースID
 - `NOTE_STATE_FILE`: `note-state.json` ファイルの内容（Base64エンコード）
+
+**オプション：**
+- `OPENAI_MODEL`: 使用するOpenAIモデル（デフォルト: `gpt-4o-mini`）
+  - `gpt-4o-mini`: コスパ最強、日記整形には十分（推奨）
+  - `gpt-4o`: より高品質だが高コスト
+  - `gpt-3.5-turbo`: 最安だが品質は劣る
 
 #### NOTE_STATE_FILE の設定方法
 

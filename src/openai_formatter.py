@@ -98,6 +98,9 @@ def format_article(memo_content: str, date: str) -> tuple[str, str]:
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable is not set")
 
+    # Get model from environment variable, default to gpt-4o-mini
+    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+
     client = OpenAI(api_key=api_key)
 
     user_message = f"""以下のメモを整形してください。
@@ -114,7 +117,7 @@ def format_article(memo_content: str, date: str) -> tuple[str, str]:
 """
 
     message = client.chat.completions.create(
-        model="gpt-4o",
+        model=model,
         max_tokens=4096,
         messages=[
             {
