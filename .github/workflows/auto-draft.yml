@@ -28,6 +28,9 @@ jobs:
           playwright install chromium
           playwright install-deps chromium
 
+      - name: Install xvfb for virtual display
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
       - name: Setup note.com session state
         run: |
           if [ ! -z "${{ secrets.NOTE_STATE_FILE }}" ]; then
@@ -43,4 +46,4 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           NOTE_STATE_FILE: ./note-state.json
-        run: python src/main.py
+        run: xvfb-run --auto-servernum python src/main.py

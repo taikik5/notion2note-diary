@@ -36,8 +36,9 @@ def post_draft_to_note(
         )
 
     with sync_playwright() as p:
-        # Use headless mode for CI/CD environments (GitHub Actions)
-        browser = p.chromium.launch(headless=True)
+        # Use headed mode with xvfb for proper JavaScript execution
+        # GitHub Actions uses xvfb-run to provide virtual display
+        browser = p.chromium.launch(headless=False)
 
         # Create context with session state
         context_options = {
