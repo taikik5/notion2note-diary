@@ -5,6 +5,7 @@ Playwright-based automation for note.com article posting.
 import os
 import time
 import json
+import platform
 from playwright.sync_api import sync_playwright, Page
 
 
@@ -163,7 +164,7 @@ def _input_article_content(page: Page, title: str, body: str) -> None:
         print(f"Debug - Available textareas: {page.locator('textarea').count()}")
         print(f"Debug - Available inputs: {page.locator('input').count()}")
 
-    # Input body
+    # Input body using clipboard paste (required for markdown conversion)
     body_editor = page.locator('[data-testid="article-body"]').or_(
         page.locator('.o-noteEditorTextarea__body')
     ).or_(
@@ -173,48 +174,58 @@ def _input_article_content(page: Page, title: str, body: str) -> None:
     )
 
     if body_editor.count() > 0:
-        print("Found body editor, filling...")
+        print("Found body editor, pasting content via clipboard...")
         editor_element = body_editor.first
         editor_element.click()
-        time.sleep(1)
+        time.sleep(0.5)
 
-        # Try different input methods
-        success = False
+        # Use clipboard paste - this is required for note.com to recognize markdown
+        # note.com converts markdown to proper formatting only when pasting from clipboard
         try:
-            # Method 1: Direct fill (works for textarea)
-            editor_element.fill(body)
-            print("Body filled using fill()")
-            success = True
-        except Exception as e1:
-            print(f"fill() failed: {e1}")
-            try:
-                # Method 2: Type character by character (slower but more reliable)
-                editor_element.type(body, delay=10)
-                print("Body filled using type()")
-                success = True
-            except Exception as e2:
-                print(f"type() failed: {e2}")
-                try:
-                    # Method 3: Use JavaScript to set content
-                    page.evaluate(
-                        """(content) => {
-                            const editor = document.querySelector('[contenteditable="true"]') ||
-                                           document.querySelector('.ProseMirror') ||
-                                           document.querySelector('[data-testid="article-body"]');
-                            if (editor) {
-                                editor.innerHTML = content.replace(/\\n/g, '<br>');
-                                editor.dispatchEvent(new Event('input', { bubbles: true }));
-                            }
-                        }""",
-                        body
-                    )
-                    print("Body filled using JavaScript")
-                    success = True
-                except Exception as e3:
-                    print(f"JavaScript method failed: {e3}")
+            # Set clipboard content using JavaScript
+            page.evaluate(
+                """async (text) => {
+                    await navigator.clipboard.writeText(text);
+                }""",
+                body
+            )
+            time.sleep(0.3)
 
-        if not success:
-            print("ERROR: All body input methods failed!")
+            # Paste using keyboard shortcut (Ctrl+V or Cmd+V)
+            # Use Meta for Mac, Control for Linux (GitHub Actions runs on Linux)
+            if platform.system() == "Darwin":
+                page.keyboard.press("Meta+v")
+            else:
+                page.keyboard.press("Control+v")
+
+            print("Body pasted using clipboard")
+            time.sleep(1)
+        except Exception as e:
+            print(f"Clipboard paste failed: {e}, trying alternative method...")
+            # Fallback: Use Playwright's built-in clipboard
+            try:
+                # Focus and select all first
+                editor_element.click()
+                time.sleep(0.3)
+
+                # Type the content line by line with Enter key
+                # This helps note.com recognize markdown better
+                lines = body.split('\n')
+                for i, line in enumerate(lines):
+                    if line.strip():
+                        page.keyboard.type(line, delay=5)
+                    if i < len(lines) - 1:
+                        page.keyboard.press("Enter")
+
+                print("Body typed line by line")
+            except Exception as e2:
+                print(f"Line-by-line typing also failed: {e2}")
+                # Last resort: direct fill
+                try:
+                    editor_element.fill(body)
+                    print("Body filled using fill() as last resort")
+                except Exception as e3:
+                    print(f"All methods failed: {e3}")
     else:
         print("Warning: Body editor not found")
         print(f"Debug - contenteditable elements: {page.locator('[contenteditable=true]').count()}")
