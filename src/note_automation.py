@@ -36,8 +36,8 @@ def post_draft_to_note(
         )
 
     with sync_playwright() as p:
-        # Try with headless=False to see if JavaScript executes properly
-        browser = p.chromium.launch(headless=False)
+        # Use headless mode for CI/CD environments (GitHub Actions)
+        browser = p.chromium.launch(headless=True)
 
         # Create context with session state
         context_options = {
