@@ -1,9 +1,9 @@
 name: Note Auto-Drafter
 
 on:
-  # Daily schedule at 13:10 UTC (22:10 JST) - TEST
+  # Daily schedule at 13:00 UTC (22:00 JST / 10:00 PM)
   schedule:
-    - cron: '10 13 * * *'
+    - cron: '0 13 * * *'
 
   # Manual trigger
   workflow_dispatch:
