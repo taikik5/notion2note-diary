@@ -75,8 +75,11 @@ def fetch_ready_articles(database_id: str) -> list[dict]:
 
 
 def _extract_title(page: dict) -> str:
-    """Extract title from page properties."""
-    title_prop = page.get("properties", {}).get("タイトル", {})
+    """Extract title (ID column) from page properties."""
+    # Try "ID" first (new column name), then fallback to "タイトル" (old)
+    title_prop = page.get("properties", {}).get("ID", {})
+    if not title_prop:
+        title_prop = page.get("properties", {}).get("タイトル", {})
     title_list = title_prop.get("title", [])
     if title_list:
         return title_list[0].get("plain_text", "")
@@ -84,8 +87,11 @@ def _extract_title(page: dict) -> str:
 
 
 def _extract_memo_content(page: dict) -> str:
-    """Extract memo content from page properties."""
-    memo_prop = page.get("properties", {}).get("メモ内容", {})
+    """Extract diary content from page properties."""
+    # Try "Diary" first (new column name), then fallback to "メモ内容" (old)
+    memo_prop = page.get("properties", {}).get("Diary", {})
+    if not memo_prop.get("rich_text"):
+        memo_prop = page.get("properties", {}).get("メモ内容", {})
     rich_text_list = memo_prop.get("rich_text", [])
     if rich_text_list:
         return "".join([rt.get("plain_text", "") for rt in rich_text_list])
@@ -97,7 +103,10 @@ def _extract_date(page: dict) -> str:
     Extract date from page properties.
     If empty, return today's date in YYYY.MM.DD format.
     """
-    date_prop = page.get("properties", {}).get("日付", {})
+    # Try "Date" first (new column name), then fallback to "日付" (old)
+    date_prop = page.get("properties", {}).get("Date", {})
+    if not date_prop.get("date"):
+        date_prop = page.get("properties", {}).get("日付", {})
     date_obj = date_prop.get("date")
     if date_obj and date_obj.get("start"):
         date_str = date_obj["start"]
