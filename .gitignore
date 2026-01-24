@@ -38,12 +38,12 @@ env/
 *.swp
 *.swo
 
-# Generated files and user-provided images
-assets/*.png
-assets/*.jpg
-assets/*.jpeg
-assets/*.ttf
-!assets/.gitkeep
+# Generated files (temporary test images)
+# Note: header_background.png and Pacifico-Regular.ttf are tracked in git
+assets/test_*.png
+assets/before_*.png
+assets/after_*.png
+assets/*_error.png
 error_screenshot.png
 before_save_screenshot.png
 after_save_screenshot.png
