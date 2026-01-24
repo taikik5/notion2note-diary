@@ -102,7 +102,48 @@ playwright install chromium
 playwright install-deps chromium
 ```
 
-#### 5. 環境変数を設定
+#### 5. 見出し画像とフォントを配置
+
+**見出し画像（header_background.png）：**
+
+アイキャッチ画像として使用される背景画像を準備してください：
+
+```bash
+# 推奨サイズ: 1280 x 670 px
+# 対応形式: PNG, JPG, JPEG
+
+# assets/ フォルダに配置
+cp /path/to/your/header_background.png assets/header_background.png
+```
+
+- ファイル名は `header_background.png` (`.jpg`, `.jpeg` も可)
+- サイズ: **1280 x 670 px** （note.com推奨）
+- note.comへ投稿時、この背景画像に日付テキストを重ねたものが見出し画像として設定されます
+- **.gitignoreで除外** されるため、各環境で独立して管理されます
+
+**フォント（Pacifico-Regular.ttf）：**
+
+見出し画像の日付テキスト用フォントです。初回セットアップで自動配置されます：
+
+```bash
+# すでに assets/Pacifico-Regular.ttf が配置されているか確認
+ls assets/Pacifico-Regular.ttf
+```
+
+フォントが見つからない場合、以下で手動ダウンロード：
+
+```bash
+cd assets
+curl -L https://fonts.gstatic.com/s/pacifico/v24/FwZY7-Qmy14u1-wWIQkA0jVVEsA.ttf -o Pacifico-Regular.ttf
+```
+
+**GitHub Actions での動作：**
+- `header_background.png` と `Pacifico-Regular.ttf` は `.gitignore` で除外
+- ローカル開発では必須（上記の配置が必要）
+- GitHub Actions では環境変数/Secretsで自動供給される予定
+- リポジトリには **保存されず**、各環境のみで利用
+
+#### 6. 環境変数を設定
 ```bash
 # .env.example をコピー
 cp .env.example .env
@@ -114,7 +155,7 @@ cp .env.example .env
 # - NOTION_DATABASE_ID
 ```
 
-#### 6. note.com セッション状態を生成（初回のみ）
+#### 7. note.com セッション状態を生成（初回のみ）
 ```bash
 # ログインスクリプトを実行
 node login-note.js
@@ -147,6 +188,17 @@ which python3
 # 実行
 python3 src/main.py
 ```
+
+### 見出し画像について
+
+毎回の投稿時に自動的にアイキャッチ画像が生成され、note.comへアップロードされます：
+
+- **背景**: `assets/header_background.png` で指定した画像
+- **テキスト**: 記事の日付（YYYY.MM.DD形式）
+- **フォント**: Pacifico（カジュアルで読みやすいスタイル）
+- **テキスト配置**: 中央、白色、影なし
+
+生成された画像は一時ディレクトリに保存され、note.comへアップロード後は自動削除されます
 
 ### トラブルシューティング
 

@@ -38,8 +38,11 @@ env/
 *.swp
 *.swo
 
-# Generated files
+# Generated files and user-provided images
 assets/*.png
+assets/*.jpg
+assets/*.jpeg
+assets/*.ttf
 !assets/.gitkeep
 error_screenshot.png
 before_save_screenshot.png
