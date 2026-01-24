@@ -15,7 +15,8 @@ NOTE_NEW_ARTICLE_URL = "https://note.com/notes/new"
 def post_draft_to_note(
     title: str,
     body: str,
-    state_file: str | None = None
+    state_file: str | None = None,
+    header_image_path: str | None = None
 ) -> bool:
     """
     Post an article as a draft to note.com using saved session state.
@@ -24,6 +25,7 @@ def post_draft_to_note(
         title: Article title
         body: Article body (Markdown)
         state_file: Path to note-state.json file (defaults to ./note-state.json)
+        header_image_path: Path to header image file (optional)
 
     Returns:
         True if successful, False otherwise
@@ -62,6 +64,14 @@ def post_draft_to_note(
         try:
             # Navigate to new article page directly (session already authenticated)
             _navigate_to_new_article(page)
+
+            # Upload header image if provided
+            if header_image_path and os.path.exists(header_image_path):
+                try:
+                    _upload_header_image(page, header_image_path)
+                except Exception as e:
+                    print(f"Warning: Header image upload failed: {e}")
+                    # Continue without header image
 
             # Input title and body
             _input_article_content(page, title, body)
@@ -131,6 +141,221 @@ def _navigate_to_new_article(page: Page) -> None:
     time.sleep(2)  # Additional wait
 
     print("✓ Successfully navigated to new article page")
+
+
+def _upload_header_image(page: Page, image_path: str) -> None:
+    """
+    Upload a header image (見出し画像) to the article.
+
+    note.com's flow:
+    1. Click on the header image icon (circular gray button at top-left)
+    2. Click "画像をアップロード" from the dropdown
+    3. File chooser opens, select the file
+    4. Image upload dialog appears, click OK/決定
+
+    Args:
+        page: Playwright Page object
+        image_path: Absolute path to the image file to upload
+    """
+    print(f"Uploading header image: {image_path}")
+
+    # Wait for the page to be fully loaded
+    time.sleep(2)
+
+    # Save page HTML for debugging
+    with open("page_content.html", "w", encoding="utf-8") as f:
+        f.write(page.content())
+    print("Page HTML saved for debugging")
+
+    # Step 1: Click on the header image icon (circular button at top-left of editor)
+    # This is the gray circular icon with an image/add icon
+    header_icon_selectors = [
+        # SVG icon or button for adding header image
+        'button[aria-label*="画像"]',
+        'button[aria-label*="見出し"]',
+        '[class*="eyecatch"]',
+        '[class*="Eyecatch"]',
+        '[class*="header-image"]',
+        '[class*="HeaderImage"]',
+        # The circular button element
+        'div[class*="AddImage"]',
+        'div[class*="addImage"]',
+        # Generic selectors for the icon area
+        '.note-editor-header button',
+        '[class*="Editor"] > div:first-child button',
+        # Try to find by the icon shape (circular element near top)
+        'div[style*="border-radius: 50%"]',
+    ]
+
+    header_clicked = False
+    for selector in header_icon_selectors:
+        try:
+            element = page.locator(selector)
+            if element.count() > 0:
+                if element.first.is_visible():
+                    element.first.click()
+                    print(f"Clicked header icon: {selector}")
+                    header_clicked = True
+                    time.sleep(1)
+                    break
+        except Exception as e:
+            print(f"  Selector '{selector}' failed: {str(e)[:30]}")
+            continue
+
+    # If not found by selector, try clicking the circular icon by position
+    if not header_clicked:
+        print("Header icon not found by selector, trying to find by visual position...")
+        try:
+            # Look for any clickable element near the top-left area
+            # The header image button is usually at the top of the editor content area
+            title_element = page.locator('[placeholder*="タイトル"]').or_(
+                page.locator('textarea').first
+            )
+            if title_element.count() > 0:
+                box = title_element.first.bounding_box()
+                if box:
+                    # The header image icon is above and to the left of the title
+                    # Click at approximately (box['x'], box['y'] - 80)
+                    click_x = box['x'] + 30  # A bit to the right of the left edge
+                    click_y = box['y'] - 80  # Above the title
+                    print(f"Clicking at position ({click_x}, {click_y})")
+                    page.mouse.click(click_x, click_y)
+                    time.sleep(1)
+                    header_clicked = True
+        except Exception as e:
+            print(f"Position-based click failed: {e}")
+
+    if not header_clicked:
+        print("WARNING: Could not click header image area")
+        page.screenshot(path="header_upload_error.png")
+        raise RuntimeError("Could not find header image area to click")
+
+    # Wait for dropdown/menu to appear
+    time.sleep(1)
+
+    # Take screenshot after clicking header area
+    page.screenshot(path="after_header_click.png")
+    print("Screenshot saved: after_header_click.png")
+
+    # Step 2: Click "画像をアップロード" from dropdown menu
+    upload_option_selectors = [
+        'text=画像をアップロード',
+        'text=アップロード',
+        'button:has-text("画像をアップロード")',
+        'button:has-text("アップロード")',
+        '[role="menuitem"]:has-text("アップロード")',
+        '[role="option"]:has-text("アップロード")',
+        'li:has-text("アップロード")',
+        'div[role="menu"] >> text=アップロード',
+        # Try clicking any visible menu item
+        '[role="menu"] button',
+        '[role="listbox"] [role="option"]',
+    ]
+
+    # Use FileChooser - click the upload option and handle file selection
+    try:
+        with page.expect_file_chooser(timeout=15000) as fc_info:
+            # Try to click the upload option
+            upload_clicked = False
+            for selector in upload_option_selectors:
+                try:
+                    element = page.locator(selector)
+                    if element.count() > 0 and element.first.is_visible():
+                        element.first.click()
+                        print(f"Clicked upload option: {selector}")
+                        upload_clicked = True
+                        break
+                except Exception:
+                    continue
+
+            if not upload_clicked:
+                # If dropdown didn't appear, try clicking the header area again
+                # Sometimes note.com requires a direct click to trigger file chooser
+                print("Upload option not found, trying direct file input...")
+                file_input = page.locator('input[type="file"]')
+                if file_input.count() > 0:
+                    file_input.first.set_input_files(image_path)
+                    print("Used direct file input")
+                    return
+                raise RuntimeError("Could not find upload option in dropdown")
+
+        # Handle file chooser
+        file_chooser = fc_info.value
+        file_chooser.set_files(image_path)
+        print("Header image file selected")
+
+        # Wait for upload processing
+        time.sleep(3)
+
+        # Step 3: Handle the image crop/position dialog
+        # Look for 保存 button in the dialog (not the header's 下書き保存)
+        # Wait for dialog to fully load
+        time.sleep(2)
+
+        # Take screenshot before clicking save
+        page.screenshot(path="before_image_save.png")
+        print("Screenshot saved: before_image_save.png")
+
+        save_clicked = False
+
+        # Method 1: Find button with exact text "保存" (not "下書き保存")
+        try:
+            # Get all buttons with text containing "保存"
+            all_save_buttons = page.locator('button:has-text("保存")')
+            button_count = all_save_buttons.count()
+            print(f"Found {button_count} buttons with '保存' text")
+
+            for i in range(button_count):
+                button = all_save_buttons.nth(i)
+                button_text = button.inner_text()
+                print(f"  Button {i}: '{button_text}'")
+
+                # Skip if it's "下書き保存" (header button)
+                if "下書き" in button_text:
+                    continue
+
+                # This should be the dialog's "保存" button
+                if button.is_visible():
+                    button.click()
+                    print(f"Clicked dialog save button: '{button_text}'")
+                    save_clicked = True
+                    time.sleep(2)
+                    break
+        except Exception as e:
+            print(f"Method 1 failed: {e}")
+
+        # Method 2: Click by position (dialog's bottom-right area)
+        if not save_clicked:
+            print("Trying position-based click for save button...")
+            try:
+                # The dialog appears to be centered, with save button at bottom-right
+                # Get viewport size and estimate dialog position
+                viewport = page.viewport_size
+                if viewport:
+                    # Dialog save button is typically at the right side of the dialog footer
+                    # Based on screenshot: dialog is centered, button is at bottom-right
+                    click_x = viewport['width'] * 0.75  # Right side of center
+                    click_y = viewport['height'] * 0.85  # Near bottom
+                    print(f"Clicking at estimated position ({click_x}, {click_y})")
+                    page.mouse.click(click_x, click_y)
+                    save_clicked = True
+                    time.sleep(2)
+            except Exception as e:
+                print(f"Method 2 failed: {e}")
+
+        # Method 3: Try keyboard Enter
+        if not save_clicked:
+            print("WARNING: Could not find save button, trying keyboard Enter...")
+            page.keyboard.press("Enter")
+            time.sleep(2)
+
+        print("✓ Header image upload completed")
+
+    except Exception as e:
+        print(f"Upload failed: {e}")
+        # Take screenshot for debugging
+        page.screenshot(path="header_upload_error.png")
+        raise RuntimeError(f"Header image upload failed: {e}")
 
 
 def _input_article_content(page: Page, title: str, body: str) -> None:

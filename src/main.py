@@ -10,6 +10,8 @@ This script:
 
 import os
 import sys
+import tempfile
+import shutil
 
 # Add the src directory to the path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -22,6 +24,7 @@ from notion_client_module import (
 )
 from openai_formatter import format_article
 from note_automation import post_draft_to_note
+from image_generator import create_header_image
 
 # Load environment variables from .env file
 load_dotenv()
@@ -68,6 +71,9 @@ def main() -> int:
         print(f"Date: {article['date']}")
         print("=" * 50)
 
+        # Create temp directory for header image
+        temp_dir = tempfile.mkdtemp(prefix="note_header_")
+
         try:
             # Step 2: Format article with OpenAI
             print("\n[Step 2] Formatting article with OpenAI...")
@@ -82,9 +88,16 @@ def main() -> int:
             print(f"Formatted title: {title}")
             print(f"Body length: {len(body)} characters")
 
-            # Step 3: Post to note.com as draft
+            # Step 2.5: Generate header image
+            print("\n[Step 2.5] Generating header image...")
+            date_for_filename = article["date"].replace(".", "_")
+            image_path = os.path.join(temp_dir, f"header_{date_for_filename}.png")
+            create_header_image(article["date"], image_path)
+            print(f"Header image generated: {image_path}")
+
+            # Step 3: Post to note.com as draft (with header image)
             print("\n[Step 3] Posting to note.com as draft...")
-            post_draft_to_note(title, body)
+            post_draft_to_note(title, body, header_image_path=image_path)
             print("Successfully posted draft to note.com!")
 
             # Step 4: Mark as Done in Notion
@@ -99,6 +112,12 @@ def main() -> int:
             error_count += 1
             # Continue with next article instead of failing completely
             continue
+
+        finally:
+            # Clean up temp directory
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                print("Temp files cleaned up")
 
     # Summary
     print("\n" + "=" * 50)

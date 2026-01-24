@@ -10,18 +10,27 @@ from PIL import Image, ImageDraw, ImageFont
 IMAGE_WIDTH = 1280
 IMAGE_HEIGHT = 670
 
-# Gradient colors (purple to blue)
+# Background image path (user-provided, not tracked in git)
+BACKGROUND_IMAGE_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "assets",
+    "header_background.png"
+)
+
+# Fallback gradient colors (purple to blue) - used if no background image
 GRADIENT_START = (102, 126, 234)  # #667eea
 GRADIENT_END = (118, 75, 162)     # #764ba2
 
 # Text settings
-TEXT_COLOR = (255, 255, 255)
-SHADOW_COLOR = (0, 0, 0, 80)
+TEXT_COLOR = (0, 0, 0)  # Black
 
 
 def create_header_image(date: str, output_path: str) -> str:
     """
-    Create a header image with gradient background and date text.
+    Create a header image with background and date text overlay.
+
+    Uses a user-provided background image if available,
+    otherwise falls back to a gradient background.
 
     Args:
         date: Date string in YYYY.MM.DD format
@@ -30,8 +39,8 @@ def create_header_image(date: str, output_path: str) -> str:
     Returns:
         Path to the generated image
     """
-    # Create gradient background
-    image = _create_gradient_background()
+    # Load background (user image or gradient fallback)
+    image = _load_background_image()
 
     # Add date text
     _add_date_text(image, date)
@@ -39,6 +48,25 @@ def create_header_image(date: str, output_path: str) -> str:
     # Save image
     image.save(output_path, "PNG", quality=95)
     return output_path
+
+
+def _load_background_image() -> Image.Image:
+    """
+    Load the user-provided background image.
+    Falls back to gradient if no image is found.
+    """
+    # Try multiple extensions
+    for ext in [".png", ".jpg", ".jpeg"]:
+        path = BACKGROUND_IMAGE_PATH.replace(".png", ext)
+        if os.path.exists(path):
+            print(f"Loading background image: {path}")
+            img = Image.open(path).convert("RGB")
+            # Resize to fit note.com's recommended size
+            return img.resize((IMAGE_WIDTH, IMAGE_HEIGHT), Image.Resampling.LANCZOS)
+
+    # Fallback to gradient
+    print("No background image found, using gradient fallback")
+    return _create_gradient_background()
 
 
 def _create_gradient_background() -> Image.Image:
@@ -65,46 +93,31 @@ def _add_date_text(image: Image.Image, date: str) -> None:
     draw = ImageDraw.Draw(image)
 
     # Try to load a nice font, fall back to default if not available
-    font = _get_font(size=120)
-    sub_font = _get_font(size=40)
+    font = _get_font(size=180)
 
     # Main date text
     main_text = date
 
-    # Get text bounding box for centering
-    bbox = draw.textbbox((0, 0), main_text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
+    # Center the text horizontally and position higher vertically
+    # Using anchor="mm" (middle-middle) for precise centering
+    center_x = IMAGE_WIDTH // 2
+    center_y = int(IMAGE_HEIGHT * 0.40)  # Position text in upper-center area
 
-    x = (IMAGE_WIDTH - text_width) // 2
-    y = (IMAGE_HEIGHT - text_height) // 2 - 30
-
-    # Draw shadow
-    shadow_offset = 3
-    draw.text(
-        (x + shadow_offset, y + shadow_offset),
-        main_text,
-        font=font,
-        fill=(0, 0, 0, 100)
-    )
-
-    # Draw main text
-    draw.text((x, y), main_text, font=font, fill=TEXT_COLOR)
-
-    # Add "Daily Log" subtitle
-    subtitle = "Daily Log"
-    sub_bbox = draw.textbbox((0, 0), subtitle, font=sub_font)
-    sub_width = sub_bbox[2] - sub_bbox[0]
-    sub_x = (IMAGE_WIDTH - sub_width) // 2
-    sub_y = y + text_height + 20
-
-    draw.text((sub_x, sub_y), subtitle, font=sub_font, fill=(255, 255, 255, 200))
+    # Draw text centered (no shadow, black text only)
+    draw.text((center_x, center_y), main_text, font=font, fill=TEXT_COLOR, anchor="mm")
 
 
 def _get_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     """Get a font, with fallbacks for different environments."""
     # List of fonts to try (common on various systems)
+    # Pacifico is prioritized as it's the preferred font
     font_paths = [
+        # User-provided Pacifico font (in assets folder)
+        os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "assets",
+            "Pacifico-Regular.ttf"
+        ),
         # macOS
         "/System/Library/Fonts/Helvetica.ttc",
         "/System/Library/Fonts/HelveticaNeue.ttc",
@@ -121,11 +134,15 @@ def _get_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     for font_path in font_paths:
         if os.path.exists(font_path):
             try:
-                return ImageFont.truetype(font_path, size)
-            except (OSError, IOError):
+                font = ImageFont.truetype(font_path, size)
+                print(f"✓ Loaded font: {font_path}")
+                return font
+            except (OSError, IOError) as e:
+                print(f"✗ Failed to load {font_path}: {e}")
                 continue
 
     # Fall back to default font
+    print("⚠ Using default font (Pacifico not found)")
     return ImageFont.load_default()
 
 

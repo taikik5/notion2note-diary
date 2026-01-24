@@ -40,6 +40,26 @@ jobs:
             echo "Warning: NOTE_STATE_FILE secret not found"
           fi
 
+      - name: Setup header background image
+        run: |
+          if [ ! -z "${{ secrets.HEADER_IMAGE_BASE64 }}" ]; then
+            mkdir -p assets
+            echo "${{ secrets.HEADER_IMAGE_BASE64 }}" | base64 -d > assets/header_background.png
+            echo "✓ Header background image restored"
+          else
+            echo "Warning: HEADER_IMAGE_BASE64 secret not found, using gradient fallback"
+          fi
+
+      - name: Setup Pacifico font
+        run: |
+          if [ ! -z "${{ secrets.PACIFICO_FONT_BASE64 }}" ]; then
+            mkdir -p assets
+            echo "${{ secrets.PACIFICO_FONT_BASE64 }}" | base64 -d > assets/Pacifico-Regular.ttf
+            echo "✓ Pacifico font restored"
+          else
+            echo "Warning: PACIFICO_FONT_BASE64 secret not found, using fallback font"
+          fi
+
       - name: Run Auto-Drafter
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

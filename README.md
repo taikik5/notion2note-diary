@@ -102,7 +102,32 @@ playwright install chromium
 playwright install-deps chromium
 ```
 
-#### 5. 環境変数を設定
+#### 5. 見出し画像とフォント
+
+見出し画像とフォントはリポジトリに保存されているため、追加設定は不要です。
+
+**セットアップ済みファイル：**
+- `assets/header_background.png` - 背景画像（1280 x 670 px）
+- `assets/Pacifico-Regular.ttf` - 日付テキスト用フォント
+
+**カスタマイズしたい場合：**
+
+背景画像を変更する場合は、以下の手順で新しい画像を配置してください：
+
+```bash
+# 推奨サイズ: 1280 x 670 px、対応形式: PNG, JPG, JPEG
+cp /path/to/your/image.png assets/header_background.png
+
+# ローカルで動作確認
+./venv/bin/python src/image_generator.py
+# assets/test_header.png が生成されます
+```
+
+**GitHub Actions での動作：**
+- リポジトリに保存されたファイルを自動使用
+- 追加の Secret 設定は不要
+
+#### 6. 環境変数を設定
 ```bash
 # .env.example をコピー
 cp .env.example .env
@@ -114,7 +139,7 @@ cp .env.example .env
 # - NOTION_DATABASE_ID
 ```
 
-#### 6. note.com セッション状態を生成（初回のみ）
+#### 7. note.com セッション状態を生成（初回のみ）
 ```bash
 # ログインスクリプトを実行
 node login-note.js
@@ -147,6 +172,21 @@ which python3
 # 実行
 python3 src/main.py
 ```
+
+### 見出し画像について
+
+毎回の投稿時に自動的にアイキャッチ画像が生成され、note.comへアップロードされます：
+
+- **背景**: リポジトリの `assets/header_background.png`
+- **テキスト**: 記事の日付（YYYY.MM.DD形式、Pacifico フォント）
+- **テキスト配置**: 画面中央（左右上下中央揃え）
+- **テキスト色**: 黒色、影なし
+
+生成されたヘッダー画像は一時ディレクトリに保存され、note.comへアップロード後は自動削除されます。
+
+**環境別の動作：**
+- **ローカル**: `assets/header_background.png` を使用
+- **GitHub Actions**: リポジトリの `assets/header_background.png` を使用
 
 ### トラブルシューティング
 
