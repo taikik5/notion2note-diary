@@ -93,7 +93,7 @@ def _add_date_text(image: Image.Image, date: str) -> None:
     draw = ImageDraw.Draw(image)
 
     # Try to load a nice font, fall back to default if not available
-    font = _get_font(size=120)
+    font = _get_font(size=180)
 
     # Main date text
     main_text = date
@@ -103,10 +103,11 @@ def _add_date_text(image: Image.Image, date: str) -> None:
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
 
+    # Center the text both horizontally and vertically
     x = (IMAGE_WIDTH - text_width) // 2
     y = (IMAGE_HEIGHT - text_height) // 2
 
-    # Draw text (no shadow, white text only)
+    # Draw text centered (no shadow, black text only)
     draw.text((x, y), main_text, font=font, fill=TEXT_COLOR)
 
 
