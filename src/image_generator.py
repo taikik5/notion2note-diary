@@ -98,10 +98,10 @@ def _add_date_text(image: Image.Image, date: str) -> None:
     # Main date text
     main_text = date
 
-    # Center the text both horizontally and vertically
+    # Center the text horizontally and position higher vertically
     # Using anchor="mm" (middle-middle) for precise centering
     center_x = IMAGE_WIDTH // 2
-    center_y = IMAGE_HEIGHT // 2
+    center_y = int(IMAGE_HEIGHT * 0.40)  # Position text in upper-center area
 
     # Draw text centered (no shadow, black text only)
     draw.text((center_x, center_y), main_text, font=font, fill=TEXT_COLOR, anchor="mm")
