@@ -98,17 +98,13 @@ def _add_date_text(image: Image.Image, date: str) -> None:
     # Main date text
     main_text = date
 
-    # Get text bounding box for centering
-    bbox = draw.textbbox((0, 0), main_text, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-
     # Center the text both horizontally and vertically
-    x = (IMAGE_WIDTH - text_width) // 2
-    y = (IMAGE_HEIGHT - text_height) // 2
+    # Using anchor="mm" (middle-middle) for precise centering
+    center_x = IMAGE_WIDTH // 2
+    center_y = IMAGE_HEIGHT // 2
 
     # Draw text centered (no shadow, black text only)
-    draw.text((x, y), main_text, font=font, fill=TEXT_COLOR)
+    draw.text((center_x, center_y), main_text, font=font, fill=TEXT_COLOR, anchor="mm")
 
 
 def _get_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
