@@ -22,7 +22,7 @@ GRADIENT_START = (102, 126, 234)  # #667eea
 GRADIENT_END = (118, 75, 162)     # #764ba2
 
 # Text settings
-TEXT_COLOR = (255, 255, 255)
+TEXT_COLOR = (0, 0, 0)  # Black
 
 
 def create_header_image(date: str, output_path: str) -> str:
@@ -137,11 +137,15 @@ def _get_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     for font_path in font_paths:
         if os.path.exists(font_path):
             try:
-                return ImageFont.truetype(font_path, size)
-            except (OSError, IOError):
+                font = ImageFont.truetype(font_path, size)
+                print(f"✓ Loaded font: {font_path}")
+                return font
+            except (OSError, IOError) as e:
+                print(f"✗ Failed to load {font_path}: {e}")
                 continue
 
     # Fall back to default font
+    print("⚠ Using default font (Pacifico not found)")
     return ImageFont.load_default()
 
 
